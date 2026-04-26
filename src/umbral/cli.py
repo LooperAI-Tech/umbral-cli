@@ -8,6 +8,10 @@ from umbral.commands.init_cmd import init_project
 from umbral.commands.status import status
 from umbral.commands.design import design
 from umbral.commands.ede_cmd import ede_app
+from umbral.commands.discover import discover
+from umbral.commands.articulate import articulate
+from umbral.commands.next_cmd import next_cmd
+from umbral.commands.verify import verify
 
 app = typer.Typer(
     name="umbral",
@@ -38,6 +42,14 @@ app.command(name="status")(status)
 # Sprint 2
 app.command(name="design")(design)
 app.add_typer(ede_app, name="ede")
+
+# Sprint 3
+app.command(name="discover")(discover)
+app.command(name="articulate")(articulate)
+
+# Sprint 4
+app.command(name="next")(next_cmd)
+app.command(name="verify")(verify)
 
 
 if __name__ == "__main__":
