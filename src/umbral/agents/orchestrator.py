@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
+import typer
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from umbral.agents.base_adapter import BaseAdapter
@@ -17,6 +18,7 @@ from umbral.agents.adapters.cursor import CursorAdapter
 from umbral.agents.context_builder import PromptContext, build_context
 from umbral.core.config import AgentType
 from umbral.storage.config_store import load_config
+from umbral.ui.fs_errors import handle_write_error
 
 
 # Directorio de templates de prompts
@@ -81,7 +83,12 @@ def deposit_phase_prompt(
     adapter = get_adapter(config.agent)
     context = build_context(project_root)
     content = render_prompt(template_name, context)
-    return adapter.deposit_prompt(project_root, output_filename, content)
+    try:
+        return adapter.deposit_prompt(project_root, output_filename, content)
+    except OSError as e:
+        if handle_write_error(e, project_root):
+            raise typer.Exit(code=1) from None
+        raise
 
 
 def deposit_build_prompt(
@@ -94,4 +101,9 @@ def deposit_build_prompt(
     adapter = get_adapter(config.agent)
     context = build_context_for_build(project_root, context_slug)
     content = render_prompt("phases/build.md", context)
-    return adapter.deposit_prompt(project_root, f"build-{context_slug}", content)
+    try:
+        return adapter.deposit_prompt(project_root, f"build-{context_slug}", content)
+    except OSError as e:
+        if handle_write_error(e, project_root):
+            raise typer.Exit(code=1) from None
+        raise
