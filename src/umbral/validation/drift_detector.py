@@ -68,26 +68,23 @@ def _ede_tokens(ede: EDE) -> set[str]:
 def _iter_code_files(root: Path) -> list[Path]:
     out: list[Path] = []
     for p in root.rglob("*"):
-        if p.is_dir() and p.name in _SKIP_DIRS:
-            # No descender en venv, etc. (rglob ya pasó, pero filtramos archivos)
-            continue
         if not p.is_file():
             continue
-        # Limitar a fuentes y markdown en raíz
         if p.suffix not in {".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java"}:
             continue
-        # Si algún parent es skip
         if any(part in _SKIP_DIRS for part in p.parts):
             continue
         out.append(p)
     return out[: 5000]  # tope de seguridad
 
 
-def _code_tokens(project_root: Path) -> set[str]:
+def _code_tokens(root: Path) -> set[str]:
     toks: set[str] = set()
-    for path in _iter_code_files(project_root):
+    for path in _iter_code_files(root):
         try:
-            toks |= _text_tokens(path.read_text(encoding="utf-8", errors="replace"))
+            toks |= _text_tokens(
+                path.read_text(encoding="utf-8", errors="replace")
+            )
         except OSError:
             continue
     return toks

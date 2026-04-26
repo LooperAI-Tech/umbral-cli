@@ -14,6 +14,7 @@ from umbral.core.phase import get_phase_command, get_phase_name
 from umbral.judge.phase_judge import judge_phase
 from umbral.storage.config_store import load_config, save_config
 from umbral.storage.paths import find_project_root
+from umbral.storage.telemetry_store import load_telemetry, save_telemetry
 from umbral.ui.console import (
     print_error,
     print_header,
@@ -59,9 +60,13 @@ def next_cmd() -> None:
         return
 
     # Intentar juez online
+    tel = load_telemetry(project_root)
+    tel.judge_online_attempts += 1
     verdict = judge_phase(project_root, config)
 
     if verdict is None:
+        tel.judge_api_fail_fallback += 1
+        save_telemetry(project_root, tel)
         # Fallback a offline
         if config.judge.fallback_to_offline:
             display_offline_notice()
@@ -72,6 +77,12 @@ def next_cmd() -> None:
             )
             raise typer.Exit(code=1)
         return
+
+    if verdict.is_complete:
+        tel.judge_verdict_complete += 1
+    else:
+        tel.judge_verdict_not_complete += 1
+    save_telemetry(project_root, tel)
 
     # Mostrar veredicto
     display_verdict(verdict)

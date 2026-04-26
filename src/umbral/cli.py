@@ -15,6 +15,7 @@ from umbral.commands.verify import verify
 from umbral.commands.build import build
 from umbral.commands.consolidate import consolidate
 from umbral.commands.profile_cmd import profile_app
+from umbral.commands.metrics_cmd import metrics
 
 app = typer.Typer(
     name="umbral",
@@ -58,6 +59,9 @@ app.command(name="verify")(verify)
 app.add_typer(profile_app, name="profile")
 app.command(name="build")(build)
 app.command(name="consolidate")(consolidate)
+
+# Sprint 6
+app.command(name="metrics")(metrics)
 
 
 if __name__ == "__main__":

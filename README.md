@@ -2,42 +2,198 @@
 
 **Framework de desarrollo con comprensión sostenible.**
 
-Umbral es un CLI en Python que orquesta contexto para agentes de IA. No genera código: deposita prompts contextualizados y valida artefactos.
+Umbral es un CLI en Python que orquesta contexto para agentes de IA (por ejemplo [Claude Code](https://github.com/anthropics/claude-code) o [Cursor](https://cursor.com)). **No genera código por ti**: construye y deposita prompts contextualizados donde tu agente los lea, y valida los artefactos (notas, specs, EDEs, checkpoints) con reglas estructurales y, opcionalmente, un juez LLM.
 
-## Stack
+Repositorio oficial: [https://github.com/LooperAI-Tech/umbral-cli](https://github.com/LooperAI-Tech/umbral-cli)
 
-- Python 3.11+
-- Typer · Pydantic · Rich · Questionary · Jinja2
-- uv como gestor de paquetes
+---
 
-## Instalación
+## Qué problema resuelve
+
+Sin Umbral, el usuario debe adivinar qué documentar, en qué orden, y si “ya alcanzó” para pasar a la siguiente fase. Umbral:
+
+1. Mantiene el estado del proyecto (fase, rol, EDEs, perfil cognitivo).
+2. Inyecta metodología (preguntas socráticas, scaffolding por dominio, límites de commits, etc.) en los prompts.
+3. Valida en **dos capas**: primero estructura y archivos en disco; después, si el modo del juez lo permite, semántica vía API.
+4. Guía el siguiente paso con `umbral next` y ofrece visibilidad con `umbral status` y `umbral metrics`.
+
+---
+
+## Arquitectura (vista rápida)
+
+- **CLI (Typer):** comandos y flags.
+- **Orquestación:** Jinja2 + templates en `src/umbral/prompts/`; los adapters escriben en `.claude/commands/` o `.cursor/rules/`.
+- **Validación (capa 1):** reglas por fase en disco (falta de archivos, secciones, EDEs aprobadas, etc.).
+- **Juez (capa 2):** rúbricas + proveedor (Anthropic, Gemini, OpenRouter) según `.umbral/umbral.yaml`.
+- **Almacenamiento:** `.umbral/umbral.yaml`, `profile.yaml`, `edes/`, `phases/`, `telemetry.yaml` (telemetría del juez y señales futuras).
+
+Más detalle en `docs/methodology.md` y en `Umbral_plan_tecnico_desarrollo_v2.1.md` del repositorio.
+
+---
+
+## Requisitos
+
+- **Python 3.11+**
+- **[uv](https://docs.astral.sh/uv/)** (recomendado) para entornos y dependencias
+- Claves de API **solo si** usas el juez en modo `online` (p. ej. `ANTHROPIC_API_KEY`); en `offline` no hacen falta
+
+---
+
+## Instalación del paquete
+
+### 1. Clonar el repositorio
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/umbral-cli.git
+git clone https://github.com/LooperAI-Tech/umbral-cli.git
 cd umbral-cli
+```
 
-# Instalar con uv
+### 2. Sincronizar dependencias (entorno del proyecto)
+
+Desde la raíz del repositorio:
+
+```bash
 uv sync
 ```
 
-## Uso
+Esto instala el paquete y dependencias de producción en un entorno gestionado por `uv`.
+
+### 3. Comprobar que el CLI responde
 
 ```bash
-# Verificar la instalación
 uv run umbral version
 ```
 
-## Desarrollo
+Deberías ver `umbral v0.1.0` (o la versión indicada en `pyproject.toml`).
+
+### 4. (Opcional) Instalar el comando globalmente
+
+Con la misma carpeta y entorno resuelto:
 
 ```bash
-# Instalar dependencias de desarrollo
-uv sync --group dev
+uv tool install .
+# o, si publicas en PyPI en el futuro: uv tool install umbral-cli
+```
 
-# Ejecutar tests
+Tras instalar, `umbral` puede estar en el `PATH` según la configuración de `uv` en tu sistema. Comprueba con:
+
+```bash
+umbral version
+```
+
+### 5. (Opcional) Tests y calidad (contribuidores)
+
+```bash
+uv sync --all-groups
 uv run pytest
 ```
 
+---
+
+## Uso: primer proyecto
+
+Trabajas en el directorio de **tu aplicación o repo** (no hace falta que sea el de Umbral). Umbral crea un directorio **`.umbral/`** con la configuración y artefactos.
+
+```bash
+cd /ruta/a/tu/proyecto
+uv run --directory /ruta/donde/clonaste/umbral-cli umbral init mi-proyecto
+```
+
+O, si ya instalaste con `uv tool install` o activaste el entorno donde está `umbral`:
+
+```bash
+umbral init mi-proyecto
+```
+
+- Responde los prompts (dominio, escala, rol, agente, modo del juez) o usa `--yes` para valores por defecto.
+- Revisa el estado: `umbral status`.
+
+---
+
+## Flujo por fases (metodología)
+
+Cada fase tiene un **comando asociado**. Al terminar trabajo sustantivo, ejecutas `umbral next`: valida (capa 1 y, si aplica, capa 2) y, si el resultado es adecuado, **avanza el número de fase** en `umbral.yaml`.
+
+| Fase | Nombre | Comando principal | Qué aporta |
+|------|--------|-------------------|------------|
+| 0 | Descubrimiento | `umbral discover` | Problema validado, mapa de dominio, notas. |
+| 1 | Articulación | `umbral articulate` | Spec con casos borde, fallas, alcance, datos. |
+| 2 | Diseño | `umbral design --level 1\|2\|3` | EDE (Estructura de Decisión Explícita); `umbral ede` para listar, validar, aprobar. |
+| 3 | Construcción | `umbral build -c <contexto>` | Prompt de andamiaje (Guía / Andamio / Desbloqueo) según el perfil. |
+| 4 | Verificación | `umbral verify` | Comprehension Gate; genera `checkpoint-*.yaml`. |
+| 5 | Consolidación | `umbral consolidate` | Drift EDE–código, promoción de rol, governance. |
+
+Comandos transversales:
+
+- `umbral next` — validación y avance de fase.
+- `umbral profile show` / `umbral profile update` — perfil cognitivo.
+- `umbral metrics` — dashboard de las 13 métricas (las que tengan datos en tu proyecto).
+- `umbral version` — versión del CLI.
+
+### Diagrama del flujo (simplificado)
+
+```mermaid
+flowchart TD
+  A[umbral init] --> B[Fase 0: discover]
+  B --> C[umbral next]
+  C --> D[Fase 1: articulate]
+  D --> C
+  D --> E[Fase 2: design + ede]
+  E --> C
+  E --> F[Fase 3: build]
+  F --> C
+  F --> G[Fase 4: verify]
+  G --> C
+  G --> H[Fase 5: consolidate]
+  H --> I[umbral next / nuevo feature]
+```
+
+En la práctica entrarás varias veces a `umbral next` mientras afinas archivos; la capa 1 te dice qué falta; el juez (si está online) comenta brechas semánticas.
+
+### Validación en dos capas
+
+1. **Determinista:** presencia y forma de `discovery-notes.md`, `spec-*.md`, EDEs aprobadas, checkpoints, etc. Sin coste de API.
+2. **Juez LLM:** si `judge.mode` es `online` y la capa 1 pasa, se envía rúbrica + artefactos; el veredicto es JSON (`complete` / `incomplete` / `needs_revision`). Si no hay clave o falla la API, puedes degradar a `offline` o usar `fallback_to_offline` en `umbral.yaml`.
+
+---
+
+## Configuración del juez (resumen)
+
+En `.umbral/umbral.yaml` la sección `judge` controla el modo (`online` / `offline`), el proveedor y el modelo. El CLI no guarda nunca claves en ese archivo: usa variables de entorno (p. ej. `ANTHROPIC_API_KEY`).
+
+---
+
+## Estructura `.umbral/` (referencia)
+
+- `umbral.yaml` — nombre del proyecto, dominio, escala, rol, fase actual, juez.
+- `profile.yaml` — conceptos de dominio, deuda de comprensión, mastery por contexto, etc.
+- `edes/*.md` — EDEs con frontmatter YAML.
+- `phases/*.md`, `checkpoint-*.yaml` — fases y gates.
+- `telemetry.yaml` — contadores del juez (p. ej. invocaciones y fallbacks) usados por `umbral metrics`.
+
+---
+
+## Documentación adicional
+
+- `docs/methodology.md` — resumen de la metodología.
+- `Umbral_plan_tecnico_desarrollo_v2.1.md` — plan técnico completo.
+- `CHANGELOG.md` — historial de cambios.
+
+---
+
+## Desarrollo (en el repositorio Umbral)
+
+```bash
+git clone https://github.com/LooperAI-Tech/umbral-cli.git
+cd umbral-cli
+uv sync --all-groups
+uv run pytest
+```
+
+La integración continua (pytest con `uv`) está definida en `.github/workflows/ci.yml` para las ramas principales.
+
+---
+
 ## Licencia
 
-MIT
+MIT. Ver `LICENSE`.

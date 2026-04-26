@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 import typer
@@ -17,9 +18,11 @@ from umbral.core.config import (
     Scale,
 )
 from umbral.core.profile import CognitiveProfile
+from umbral.core.telemetry import UmbralTelemetry
 from umbral.storage.config_store import save_config
-from umbral.storage.paths import ensure_umbral_structure, get_umbral_dir
+from umbral.storage.paths import ensure_umbral_structure, get_telemetry_path, get_umbral_dir
 from umbral.storage.profile_store import save_profile
+from umbral.storage.telemetry_store import save_telemetry
 from umbral.ui.console import (
     print_error,
     print_header,
@@ -85,6 +88,14 @@ def init_project(
     profile = CognitiveProfile()
     save_profile(project_root, profile)
     print_success("Perfil Cognitivo inicializado en .umbral/profile.yaml")
+
+    if not get_telemetry_path(project_root).exists():
+        save_telemetry(
+            project_root,
+            UmbralTelemetry(
+                first_umbral_init_at=datetime.now(timezone.utc).isoformat()
+            ),
+        )
 
     # Setup del adapter
     adapter_path = setup_adapter(project_root, config.agent)

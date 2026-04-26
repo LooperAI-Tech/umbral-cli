@@ -64,6 +64,11 @@ def get_phases_dir(project_root: Path) -> Path:
     return get_umbral_dir(project_root) / "phases"
 
 
+def get_telemetry_path(project_root: Path) -> Path:
+    """Ruta a telemetría local (métricas del juez y señales futuras)."""
+    return get_umbral_dir(project_root) / "telemetry.yaml"
+
+
 def ensure_umbral_structure(project_root: Path) -> None:
     """Crea toda la estructura de directorios .umbral/ si no existe.
 
