@@ -6,6 +6,8 @@ from rich.console import Console
 from umbral import __version__
 from umbral.commands.init_cmd import init_project
 from umbral.commands.status import status
+from umbral.commands.design import design
+from umbral.commands.ede_cmd import ede_app
 
 app = typer.Typer(
     name="umbral",
@@ -29,9 +31,13 @@ def version() -> None:
     console.print(f"umbral v{__version__}")
 
 
-# Registrar comandos de Sprint 1
+# Sprint 1
 app.command(name="init")(init_project)
 app.command(name="status")(status)
+
+# Sprint 2
+app.command(name="design")(design)
+app.add_typer(ede_app, name="ede")
 
 
 if __name__ == "__main__":
