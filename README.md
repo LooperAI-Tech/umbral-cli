@@ -34,54 +34,69 @@ Más detalle en `docs/methodology.md` y en `Umbral_plan_tecnico_desarrollo_v2.1.
 ## Requisitos
 
 - **Python 3.11+**
-- **[uv](https://docs.astral.sh/uv/)** (recomendado) para entornos y dependencias
+- **[uv](https://docs.astral.sh/uv/)** o **[pipx](https://pypa.github.io/pipx/)** para instalar el CLI de forma aislada (recomendado en máquina de usuario final)
+- **[uv](https://docs.astral.sh/uv/)** también para desarrollar clonando el repo (`uv sync`)
 - Claves de API **solo si** usas el juez en modo `online` (p. ej. `ANTHROPIC_API_KEY`); en `offline` no hacen falta
 
 ---
 
 ## Instalación del paquete
 
-### 1. Clonar el repositorio
+En `pyproject.toml` el **nombre instalable** es `umbral-cli`; el **comando** que queda en el `PATH` es `umbral` (no hace falta que coincidan, igual que en [Spec Kit](https://github.com/github/spec-kit) con `specify-cli` / `specify`).
+
+> **Recomendación:** instalar **desde el repositorio** (por URL `git+https://...`), igual que hace [Spec-Kit con `uv tool install` y `git+https://github.com/github/spec-kit.git`](https://github.com/github/spec-kit). Sustituye `vX.Y.Z` por el [último tag](https://github.com/LooperAI-Tech/umbral-cli/tags) o release estable cuando exista en el remoto.
+
+### Opción 1: instalación persistente (recomendada)
+
+Una sola vez; luego usas `umbral` en cualquier carpeta de proyecto.
+
+**Con [uv](https://docs.astral.sh/uv/) (equivalente a `uv tool install specify-cli --from git+...` en Spec-Kit):**
 
 ```bash
-git clone https://github.com/LooperAI-Tech/umbral-cli.git
-cd umbral-cli
+# Instalar un release estable (recomendado — reemplaza vX.Y.Z por el último tag, p. ej. v0.1.0)
+uv tool install umbral-cli --from git+https://github.com/LooperAI-Tech/umbral-cli.git@vX.Y.Z
+
+# O instalar la última versión de la rama main (puede incluir cambios aún no etiquetados)
+uv tool install umbral-cli --from git+https://github.com/LooperAI-Tech/umbral-cli.git
 ```
 
-### 2. Sincronizar dependencias (entorno del proyecto)
-
-Desde la raíz del repositorio:
+**Con [pipx](https://pypa.github.io/pipx/) (también válido):**
 
 ```bash
-uv sync
+pipx install git+https://github.com/LooperAI-Tech/umbral-cli.git@vX.Y.Z
+pipx install git+https://github.com/LooperAI-Tech/umbral-cli.git
 ```
 
-Esto instala el paquete y dependencias de producción en un entorno gestionado por `uv`.
-
-### 3. Comprobar que el CLI responde
-
-```bash
-uv run umbral version
-```
-
-Deberías ver `umbral v0.1.0` (o la versión indicada en `pyproject.toml`).
-
-### 4. (Opcional) Instalar el comando globalmente
-
-Con la misma carpeta y entorno resuelto:
-
-```bash
-uv tool install .
-# o, si publicas en PyPI en el futuro: uv tool install umbral-cli
-```
-
-Tras instalar, `umbral` puede estar en el `PATH` según la configuración de `uv` en tu sistema. Comprueba con:
+**Comprobar la instalación:**
 
 ```bash
 umbral version
 ```
 
-### 5. (Opcional) Tests y calidad (contribuidores)
+**Actualizar** cuando haya un tag nuevo: vuelve a ejecutar el mismo `uv tool install` / `pipx install` (uv y pipx suelen actualizar al pedir de nuevo el mismo origen) o, con pipx, `pipx upgrade umbral-cli` si el paquete instalado se llama así en tu entorno.
+
+### Opción 2: solo para desarrollar o contribuir (clonar el repo)
+
+```bash
+git clone https://github.com/LooperAI-Tech/umbral-cli.git
+cd umbral-cli
+uv sync
+```
+
+Ejecutar el CLI **sin** instalarlo globalmente:
+
+```bash
+uv run umbral version
+```
+
+Instalar en modo editable desde el clon (alternativa al `git+https` de arriba):
+
+```bash
+cd umbral-cli
+uv tool install .   # empaqueta y expone el comando `umbral`
+```
+
+Tests (opcional):
 
 ```bash
 uv sync --all-groups
@@ -94,15 +109,18 @@ uv run pytest
 
 Trabajas en el directorio de **tu aplicación o repo** (no hace falta que sea el de Umbral). Umbral crea un directorio **`.umbral/`** con la configuración y artefactos.
 
+Si seguiste la **instalación persistente** (`uv tool install` / `pipx`):
+
+```bash
+cd /ruta/a/tu/proyecto
+umbral init mi-proyecto
+```
+
+Si solo clonaste el repo y usas el entorno local:
+
 ```bash
 cd /ruta/a/tu/proyecto
 uv run --directory /ruta/donde/clonaste/umbral-cli umbral init mi-proyecto
-```
-
-O, si ya instalaste con `uv tool install` o activaste el entorno donde está `umbral`:
-
-```bash
-umbral init mi-proyecto
 ```
 
 - Responde los prompts (dominio, escala, rol, agente, modo del juez) o usa `--yes` para valores por defecto.
