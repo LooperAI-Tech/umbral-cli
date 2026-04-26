@@ -10,11 +10,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from umbral.core.config import ProjectConfig
-from umbral.core.ede import EDE
 from umbral.core.phase import get_phase_command, get_phase_name
 from umbral.core.profile import CognitiveProfile
+from umbral.core.scaffolding import select_scaffolding_mode
 from umbral.storage.config_store import load_config
-from umbral.storage.ede_store import list_edes
+from umbral.storage.ede_store import list_edes, load_ede
 from umbral.storage.profile_store import load_profile
 
 
@@ -46,6 +46,12 @@ class PromptContext:
 
     # Mapa de dominio resumen
     domain_map_summary: str = ""
+
+    # Build / Fase 3 — scaffolding en bounded context
+    bounded_context: str = ""
+    mastery_in_context: float = 0.0
+    scaffolding_mode: str = ""  # guia | andamio | desbloqueo
+    focus_ede_slug: str = ""
 
 
 def build_context(project_root: Path) -> PromptContext:
@@ -102,6 +108,32 @@ def build_context(project_root: Path) -> PromptContext:
     # Resumen del mapa de dominio
     ctx.domain_map_summary = _build_domain_summary(profile)
 
+    return ctx
+
+
+def build_context_for_build(
+    project_root: Path, context_slug: str
+) -> PromptContext:
+    """Contexto enriquecido para `umbral build` (sección 2.4.1)."""
+    ctx = build_context(project_root)
+    try:
+        ede = load_ede(project_root, context_slug)
+    except FileNotFoundError:
+        ede = None
+
+    key = ede.metadata.bounded_context or context_slug if ede else context_slug
+    profile = load_profile(project_root)
+    if key in profile.context_mastery:
+        raw = profile.context_mastery[key]
+    elif context_slug in profile.context_mastery:
+        raw = profile.context_mastery[context_slug]
+    else:
+        raw = profile.dkc
+    mode = select_scaffolding_mode(float(raw))
+    ctx.bounded_context = key
+    ctx.mastery_in_context = float(raw)
+    ctx.scaffolding_mode = mode.value
+    ctx.focus_ede_slug = ede.metadata.slug if ede else context_slug
     return ctx
 
 

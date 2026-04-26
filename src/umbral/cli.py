@@ -12,6 +12,9 @@ from umbral.commands.discover import discover
 from umbral.commands.articulate import articulate
 from umbral.commands.next_cmd import next_cmd
 from umbral.commands.verify import verify
+from umbral.commands.build import build
+from umbral.commands.consolidate import consolidate
+from umbral.commands.profile_cmd import profile_app
 
 app = typer.Typer(
     name="umbral",
@@ -50,6 +53,11 @@ app.command(name="articulate")(articulate)
 # Sprint 4
 app.command(name="next")(next_cmd)
 app.command(name="verify")(verify)
+
+# Sprint 5
+app.add_typer(profile_app, name="profile")
+app.command(name="build")(build)
+app.command(name="consolidate")(consolidate)
 
 
 if __name__ == "__main__":

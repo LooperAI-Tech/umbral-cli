@@ -82,3 +82,16 @@ def deposit_phase_prompt(
     context = build_context(project_root)
     content = render_prompt(template_name, context)
     return adapter.deposit_prompt(project_root, output_filename, content)
+
+
+def deposit_build_prompt(
+    project_root: Path, context_slug: str
+) -> Path:
+    """Deposita el prompt de construcción para un bounded context (Fase 3)."""
+    from umbral.agents.context_builder import build_context_for_build
+
+    config = load_config(project_root)
+    adapter = get_adapter(config.agent)
+    context = build_context_for_build(project_root, context_slug)
+    content = render_prompt("phases/build.md", context)
+    return adapter.deposit_prompt(project_root, f"build-{context_slug}", content)

@@ -15,9 +15,12 @@ def test_cognitive_profile_empty():
     profile = CognitiveProfile()
     assert profile.domain_concepts == []
     assert profile.system_contexts == []
+    assert profile.context_mastery == {}
     assert profile.edes_written == {"level_1": 0, "level_2": 0, "level_3": 0}
     assert profile.comprehension_debt == 0
     assert profile.total_prs == 0
+    assert profile.consolidation_runs == 0
+    assert profile.next_feature_known_area is True
 
 
 def test_dkc_empty():
