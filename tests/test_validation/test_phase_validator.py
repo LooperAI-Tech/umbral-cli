@@ -108,7 +108,26 @@ class TestVerificationValidation:
         config = _setup(tmp_path, phase=4)
         phases = get_phases_dir(tmp_path)
         (phases / "checkpoint-test.yaml").write_text(
-            "questions: []\nanswers: []", encoding="utf-8"
+            """questions: ["Q1", "Q2"]
+answers:
+  - "Explico con detalle el primer concepto y por qué importa en el contexto del proyecto de forma concreta."
+  - "Segunda respuesta sustancial con varias palabras para demostrar comprensión clara y útil."
+self_assessment: "alta"
+""",
+            encoding="utf-8",
         )
         result = validate_phase(tmp_path, config)
         assert result.passed
+
+    def test_checkpoint_too_shallow_fails(self, tmp_path):
+        config = _setup(tmp_path, phase=4)
+        phases = get_phases_dir(tmp_path)
+        (phases / "checkpoint-bad.yaml").write_text(
+            """questions: ["Q1", "Q2"]
+answers: ["sí", "ok"]
+self_assessment: "alta"
+""",
+            encoding="utf-8",
+        )
+        result = validate_phase(tmp_path, config)
+        assert not result.passed

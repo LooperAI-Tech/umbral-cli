@@ -36,8 +36,10 @@ class TestGenerateQuestions:
             ]
         )
         questions = generate_questions(Role.EXPLORER, profile)
-        concept_qs = [q for q in questions if "REST" in q]
+        concept_qs = [q for q in questions if "REST" in q.text]
         assert len(concept_qs) >= 1
+        assert concept_qs[0].category == "dominio"
+        assert concept_qs[0].concept == "REST"
 
 
 class TestCheckpoint:

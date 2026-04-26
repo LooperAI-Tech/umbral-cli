@@ -9,7 +9,6 @@ from __future__ import annotations
 import questionary
 import typer
 
-from umbral.core.config import Role
 from umbral.core.ede import EDEStatus
 from umbral.storage.config_store import load_config
 from umbral.storage.ede_store import list_edes
@@ -27,6 +26,7 @@ from umbral.ui.console import (
 from umbral.ui.prompts import UMBRAL_STYLE
 from umbral.validation.comprehension_gate import (
     ComprehensionCheckpoint,
+    GateQuestion,
     generate_questions,
     save_checkpoint,
 )
@@ -65,15 +65,17 @@ def verify(
     )
 
     # Generar preguntas
-    questions = generate_questions(Role(config.role.value), profile)
+    gate_questions: list[GateQuestion] = generate_questions(config.role, profile)
 
-    console.print(f"\n[bold]Se te harán {len(questions)} preguntas.[/bold]\n")
+    console.print(
+        f"\n[bold]Se te harán {len(gate_questions)} preguntas.[/bold]\n"
+    )
 
     # Recoger respuestas
     answers = []
-    for i, question in enumerate(questions, 1):
-        console.print(f"[bold cyan]Pregunta {i}/{len(questions)}:[/bold cyan]")
-        console.print(f"  {question}\n")
+    for i, gq in enumerate(gate_questions, 1):
+        console.print(f"[bold cyan]Pregunta {i}/{len(gate_questions)}:[/bold cyan]")
+        console.print(f"  {gq.text}\n")
         answer = questionary.text(
             "Tu respuesta:",
             multiline=True,
@@ -105,7 +107,9 @@ def verify(
     checkpoint = ComprehensionCheckpoint(
         ede_slug=ede_slug,
         role=config.role.value,
-        questions=questions,
+        questions=[g.text for g in gate_questions],
+        question_categories=[g.category for g in gate_questions],
+        concepts_evaluated=[g.concept for g in gate_questions],
         answers=answers,
         self_assessment=assessment or "",
         has_debt=has_debt,

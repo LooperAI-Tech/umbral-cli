@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import yaml
+
 from umbral.core.config import ProjectConfig
 from umbral.core.ede import EDEStatus
 from umbral.storage.ede_store import list_edes
@@ -181,7 +183,7 @@ def _validate_construction(root: Path, config: ProjectConfig) -> ValidationResul
 
 
 def _validate_verification(root: Path, config: ProjectConfig) -> ValidationResult:
-    """Fase 4: checkpoint-*.yaml presente."""
+    """Fase 4: checkpoint-*.yaml presente y con contenido mínimo (sección 2.5.3)."""
     result = ValidationResult()
     phases_dir = get_phases_dir(root)
 
@@ -194,7 +196,56 @@ def _validate_verification(root: Path, config: ProjectConfig) -> ValidationResul
         return result
 
     result.artifacts_found.extend([c.name for c in checkpoints])
+
+    for cp in checkpoints:
+        _validate_checkpoint_file(cp, result)
+
     return result
+
+
+def _is_substantial_answer(text: str) -> bool:
+    """Heurística: no monosílabos ni respuestas triviales (Apéndice C.5)."""
+    t = text.strip()
+    if len(t) < 12:
+        return False
+    words = t.split()
+    if len(words) < 3:
+        return False
+    return True
+
+
+def _validate_checkpoint_file(path: Path, result: ValidationResult) -> None:
+    """Valida estructura y calidad mínima de un checkpoint."""
+    try:
+        raw = path.read_text(encoding="utf-8")
+        data = yaml.safe_load(raw)
+    except (OSError, yaml.YAMLError):
+        result.add_gap(f"{path.name}: YAML inválido o ilegible.")
+        return
+
+    if not isinstance(data, dict):
+        result.add_gap(f"{path.name}: se esperaba un mapping YAML.")
+        return
+
+    answers = data.get("answers")
+    if not isinstance(answers, list) or not answers:
+        result.add_gap(
+            f"{path.name}: falta 'answers' con al menos una respuesta."
+        )
+        return
+
+    assessment = (data.get("self_assessment") or "").strip()
+    if not assessment:
+        result.add_gap(
+            f"{path.name}: falta autoevaluación ('self_assessment')."
+        )
+
+    substantial = sum(1 for a in answers if isinstance(a, str) and _is_substantial_answer(a))
+    if substantial < max(1, (len(answers) + 1) // 2):
+        result.add_gap(
+            f"{path.name}: la mayoría de respuestas son demasiado breves o genéricas "
+            "(se espera contenido real, no monosílabos)."
+        )
 
 
 def _validate_consolidation(

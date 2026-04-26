@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 class AnthropicJudgeClient(BaseJudgeClient):
     """Cliente que usa la API de Anthropic para el juez LLM."""
 
+    def __init__(self, model: str = "claude-haiku-4-5") -> None:
+        self._model = model
+
     @property
     def provider_name(self) -> str:
         return "anthropic"
@@ -39,7 +42,7 @@ class AnthropicJudgeClient(BaseJudgeClient):
         try:
             client = anthropic.Anthropic(api_key=api_key)
             response = client.messages.create(
-                model="claude-haiku-4-5",
+                model=self._model,
                 max_tokens=max_tokens,
                 temperature=temperature,
                 system=system,

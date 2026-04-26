@@ -18,6 +18,9 @@ GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 class GeminiJudgeClient(BaseJudgeClient):
     """Cliente que usa la API REST de Gemini para el juez LLM."""
 
+    def __init__(self, model: str = "gemini-2.0-flash") -> None:
+        self._model = model
+
     @property
     def provider_name(self) -> str:
         return "gemini"
@@ -36,8 +39,7 @@ class GeminiJudgeClient(BaseJudgeClient):
             return None
 
         try:
-            model = "gemini-2.0-flash"
-            url = f"{GEMINI_API_URL}/{model}:generateContent?key={api_key}"
+            url = f"{GEMINI_API_URL}/{self._model}:generateContent?key={api_key}"
 
             payload = {
                 "system_instruction": {"parts": [{"text": system}]},

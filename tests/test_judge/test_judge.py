@@ -60,6 +60,12 @@ class TestClientFactory:
         client = create_judge_client("openrouter")
         assert isinstance(client, OpenRouterJudgeClient)
 
+    def test_create_uses_config_model(self):
+        a = create_judge_client("anthropic", "custom-model-xyz")
+        assert a._model == "custom-model-xyz"
+        g = create_judge_client("gemini", "gemini-2.5-flash")
+        assert g._model == "gemini-2.5-flash"
+
     def test_create_invalid(self):
         with pytest.raises(ValueError, match="no soportado"):
             create_judge_client("invalid")

@@ -40,6 +40,15 @@ ANCHOR_QUESTIONS = [
 ]
 
 
+@dataclass(frozen=True)
+class GateQuestion:
+    """Pregunta del gate con metadatos (sección 2.5.3 — categoría y concepto)."""
+
+    text: str
+    category: str = "general"
+    concept: str = ""
+
+
 @dataclass
 class ComprehensionCheckpoint:
     """Checkpoint del Comprehension Gate.
@@ -53,9 +62,11 @@ class ComprehensionCheckpoint:
     answers: list[str] = field(default_factory=list)
     self_assessment: str = ""
     has_debt: bool = False
+    question_categories: list[str] = field(default_factory=list)
+    concepts_evaluated: list[str] = field(default_factory=list)
 
 
-def generate_questions(role: Role, profile: CognitiveProfile) -> list[str]:
+def generate_questions(role: Role, profile: CognitiveProfile) -> list[GateQuestion]:
     """Genera preguntas de comprensión calibradas al rol.
 
     La cantidad varía por rol:
@@ -66,21 +77,47 @@ def generate_questions(role: Role, profile: CognitiveProfile) -> list[str]:
     Se priorizan conceptos no verificados del perfil.
     """
     if role == Role.EXPLORER:
-        base = EXPLORER_QUESTIONS[:3]
+        base_texts = EXPLORER_QUESTIONS[:3]
+        base_cats = ["conceptual", "práctica", "código"][: len(base_texts)]
     elif role == Role.NAVIGATOR:
-        base = NAVIGATOR_QUESTIONS[:5]
+        base_texts = NAVIGATOR_QUESTIONS[:5]
+        base_cats = [
+            "diseño",
+            "trade-off",
+            "mantenibilidad",
+            "falla",
+            "invariantes",
+        ][: len(base_texts)]
     else:
-        base = ANCHOR_QUESTIONS[:5]
+        base_texts = ANCHOR_QUESTIONS[:5]
+        base_cats = [
+            "blast_radius",
+            "governance",
+            "gobernanza",
+            "deuda_técnica",
+            "observabilidad",
+        ][: len(base_texts)]
+
+    out: list[GateQuestion] = [
+        GateQuestion(text=t, category=c, concept="")
+        for t, c in zip(base_texts, base_cats, strict=False)
+    ]
 
     # Agregar preguntas sobre conceptos no aprendidos
     pending = [c for c in profile.domain_concepts if not c.learned]
     for concept in pending[:2]:
-        base.append(
-            f"Explica con tus palabras: ¿qué es '{concept.name}' "
-            "y por qué es relevante aquí?"
+        out.append(
+            GateQuestion(
+                text=(
+                    f"Explica con tus palabras: ¿qué es '{concept.name}' "
+                    "y por qué es relevante aquí?"
+                ),
+                category="dominio",
+                concept=concept.name,
+            )
         )
 
-    return base
+    return out
 
 
 def save_checkpoint(
@@ -103,6 +140,8 @@ def save_checkpoint(
         "ede_slug": checkpoint.ede_slug,
         "role": checkpoint.role,
         "questions": checkpoint.questions,
+        "question_categories": checkpoint.question_categories,
+        "concepts_evaluated": checkpoint.concepts_evaluated,
         "answers": checkpoint.answers,
         "self_assessment": checkpoint.self_assessment,
         "has_debt": checkpoint.has_debt,

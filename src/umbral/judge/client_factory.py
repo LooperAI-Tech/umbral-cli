@@ -18,7 +18,7 @@ def create_judge_client(
 
     Args:
         provider: Nombre del proveedor (anthropic, gemini, openrouter).
-        model: Modelo específico (solo usado por openrouter).
+        model: ID del modelo en el proveedor (p. ej. claude-haiku-4-5, gemini-2.0-flash).
 
     Returns:
         Instancia del cliente correspondiente.
@@ -26,12 +26,13 @@ def create_judge_client(
     Raises:
         ValueError: Si el proveedor no es soportado.
     """
+    m = (model or "").strip()
     if provider == "anthropic":
-        return AnthropicJudgeClient()
+        return AnthropicJudgeClient(model=m or "claude-haiku-4-5")
     elif provider == "gemini":
-        return GeminiJudgeClient()
+        return GeminiJudgeClient(model=m or "gemini-2.0-flash")
     elif provider == "openrouter":
-        return OpenRouterJudgeClient(model=model or "anthropic/claude-haiku-4-5")
+        return OpenRouterJudgeClient(model=m or "anthropic/claude-haiku-4-5")
     else:
         raise ValueError(
             f"Proveedor no soportado: {provider}. "
