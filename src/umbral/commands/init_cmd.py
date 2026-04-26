@@ -43,13 +43,17 @@ from umbral.ui.prompts import (
 
 def init_project(
     project_name: str = typer.Argument(
-        ..., help="Nombre del proyecto a inicializar."
+        ..., help="Nombre del proyecto a inicializar (y de la subcarpeta que se crea por defecto)."
     ),
-    directory: Path = typer.Option(
-        Path("."),
+    directory: Path | None = typer.Option(
+        None,
         "--dir",
         "-d",
-        help="Directorio donde inicializar. Por defecto: directorio actual.",
+        help=(
+            "Directorio raíz del proyecto. "
+            "Si se omite, se crea una subcarpeta con el nombre del proyecto "
+            "en el directorio actual. Usa -d . para usar solo el directorio actual."
+        ),
     ),
     non_interactive: bool = typer.Option(
         False,
@@ -59,8 +63,22 @@ def init_project(
     ),
 ) -> None:
     """Inicializa un proyecto Umbral con toda la estructura necesaria."""
-    project_root = directory.resolve()
+    if directory is None:
+        project_root = (Path.cwd() / project_name).resolve()
+    else:
+        project_root = directory.resolve()
+
+    if not _is_safe_project_folder_name(project_name) and directory is None:
+        print_error(
+            "El nombre del proyecto no puede contener separadores de ruta (\\ o /). "
+            "Usa un identificador simple (p. ej. mi-app-api)."
+        )
+        raise typer.Exit(code=1)
+
+    project_root.mkdir(parents=True, exist_ok=True)
+
     print_header("Umbral Init", f"Inicializando proyecto: {project_name}")
+    print_info(f"Raíz del proyecto: {project_root}")
 
     # Verificar si ya existe
     umbral_dir = get_umbral_dir(project_root)
@@ -104,6 +122,15 @@ def init_project(
     # Resumen
     _print_summary(config)
     print_next_step("umbral status")
+
+
+def _is_safe_project_folder_name(name: str) -> bool:
+    """Evita nombres que confundan la ruta (.., o separadores)."""
+    if ".." in name or "/" in name or "\\" in name:
+        return False
+    if not name.strip():
+        return False
+    return True
 
 
 def _default_config(project_name: str) -> ProjectConfig:

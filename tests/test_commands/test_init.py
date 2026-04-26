@@ -63,3 +63,23 @@ def test_init_no_api_key_uses_offline(tmp_path, monkeypatch):
     assert result.exit_code == 0
     config_content = (tmp_path / ".umbral" / "umbral.yaml").read_text()
     assert "offline" in config_content
+
+
+def test_init_creates_named_subfolder_by_default(tmp_path, monkeypatch):
+    """Sin --dir, crea <nombre> bajo el directorio actual."""
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["init", "proyecto-test", "--yes"])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "proyecto-test" / ".umbral" / "umbral.yaml").is_file()
+    assert "proyecto-test" in (tmp_path / "proyecto-test" / ".umbral" / "umbral.yaml").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_init_dir_dot_uses_cwd_not_subfolder(tmp_path, monkeypatch):
+    """Con -d . inicializa en el cwd sin subcarpeta por nombre."""
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["init", "mi-app", "-d", ".", "--yes"])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / ".umbral" / "umbral.yaml").is_file()
+    assert not (tmp_path / "mi-app").is_dir()

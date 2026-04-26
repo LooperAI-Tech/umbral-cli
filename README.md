@@ -107,24 +107,40 @@ uv run pytest
 
 ## Uso: primer proyecto
 
-Trabajas en el directorio de **tu aplicación o repo** (no hace falta que sea el de Umbral). Umbral crea un directorio **`.umbral/`** con la configuración y artefactos.
-
-Si seguiste la **instalación persistente** (`uv tool install` / `pipx`):
+Por defecto, **`umbral init <nombre>` crea una subcarpeta** `<nombre>` en el directorio actual y deja allí **`.umbral/`** (configuración, EDEs, fases, etc.). Luego entra a esa carpeta para trabajar:
 
 ```bash
-cd /ruta/a/tu/proyecto
+cd ~/Desktop
 umbral init mi-proyecto
+cd mi-proyecto
+umbral status
 ```
 
-Si solo clonaste el repo y usas el entorno local:
+Si el proyecto **ya** es un repositorio clonado y quieres inicializar **sin** subcarpeta (todo en el directorio actual), usa **`-d .`**:
 
 ```bash
-cd /ruta/a/tu/proyecto
+cd /ruta/a/mi-repo-existente
+umbral init mi-proyecto -d .
+```
+
+Con **instalación persistente** (`uv tool install` / `pipx`):
+
+```bash
+cd /donde/quieras/el/proyecto
+umbral init mi-proyecto
+cd mi-proyecto
+```
+
+Si solo usas el clon de Umbral con `uv run` (sin instalar el comando global):
+
+```bash
+cd /donde/quieras/el/proyecto
 uv run --directory /ruta/donde/clonaste/umbral-cli umbral init mi-proyecto
+cd mi-proyecto
 ```
 
 - Responde los prompts (dominio, escala, rol, agente, modo del juez) o usa `--yes` para valores por defecto.
-- Revisa el estado: `umbral status`.
+- Revisa el estado: `umbral status` (desde la carpeta del proyecto, o Umbral no encontrará `.umbral` si sigues en el padre).
 
 ---
 
