@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
+import os
+
 import questionary
 from questionary import Style
 
-from umbral.core.config import AgentType, JudgeMode, Role, Scale
+from umbral.core.config import (
+    AgentType,
+    JudgeMode,
+    LLMProvider,
+    PROVIDER_DEFAULT_MODELS,
+    PROVIDER_ENV_KEYS,
+    Role,
+    Scale,
+)
 
 # Estilo personalizado para los prompts
 UMBRAL_STYLE = Style(
@@ -19,6 +29,21 @@ UMBRAL_STYLE = Style(
     ]
 )
 
+_OTHER_SENTINEL = "__other__"
+
+DOMAIN_CHOICES = [
+    questionary.Choice("🌐 Web", value="web"),
+    questionary.Choice("📱 Mobile", value="mobile"),
+    questionary.Choice("📊 Data Science", value="data-science"),
+    questionary.Choice("🤖 Machine Learning / AI", value="ml-ai"),
+    questionary.Choice("⚙️  DevOps / Infra", value="devops"),
+    questionary.Choice("🔌 Backend / API", value="backend"),
+    questionary.Choice("🎮 Videojuegos", value="games"),
+    questionary.Choice("🔒 Seguridad / Ciberseguridad", value="security"),
+    questionary.Choice("📦 CLI / Herramientas", value="cli"),
+    questionary.Choice("✏️  Otro (escribir manualmente)", value=_OTHER_SENTINEL),
+]
+
 
 def ask_project_name(default: str = "") -> str:
     """Pregunta el nombre del proyecto."""
@@ -29,12 +54,67 @@ def ask_project_name(default: str = "") -> str:
     ).ask()
 
 
-def ask_domain() -> str:
-    """Pregunta el dominio del proyecto."""
-    return questionary.text(
-        "Dominio del proyecto (ej: web, data-science, mobile, devops):",
+def ask_domain() -> str | None:
+    """Pregunta el dominio del proyecto con selector y fallback manual."""
+    value = questionary.select(
+        "¿Cuál es el dominio del proyecto?",
+        choices=DOMAIN_CHOICES,
         style=UMBRAL_STYLE,
     ).ask()
+    if value is None:
+        return None
+    if value == _OTHER_SENTINEL:
+        return questionary.text(
+            "Escribe el dominio de tu proyecto:",
+            style=UMBRAL_STYLE,
+        ).ask()
+    return value
+
+
+def ask_llm_provider() -> LLMProvider | None:
+    """Pregunta qué proveedor de LLM quiere usar."""
+    choices = [
+        questionary.Choice("🟠 Anthropic (Claude)", value="anthropic"),
+        questionary.Choice("🔵 Google Gemini", value="gemini"),
+        questionary.Choice("🟢 OpenAI (GPT)", value="openai"),
+        questionary.Choice("🟣 OpenRouter (multi-modelo)", value="openrouter"),
+    ]
+    value = questionary.select(
+        "¿Qué proveedor de LLM quieres usar para el juez?",
+        choices=choices,
+        style=UMBRAL_STYLE,
+    ).ask()
+    if value is None:
+        return None
+    return LLMProvider(value)
+
+
+def ask_api_key(provider: LLMProvider) -> str | None:
+    """Solicita la API key para el proveedor elegido.
+
+    Si ya existe en el entorno, ofrece usarla; si no, la pide.
+    Retorna la key (o None si el usuario cancela).
+    """
+    env_var = PROVIDER_ENV_KEYS[provider.value]
+    existing = os.environ.get(env_var, "").strip()
+
+    if existing:
+        masked = existing[:4] + "..." + existing[-4:]
+        use_existing = questionary.confirm(
+            f"{env_var} detectada ({masked}). ¿Usar esta key?",
+            default=True,
+            style=UMBRAL_STYLE,
+        ).ask()
+        if use_existing is None:
+            return None
+        if use_existing:
+            return existing
+
+    key = questionary.password(
+        f"Pega tu {env_var}:",
+        style=UMBRAL_STYLE,
+    ).ask()
+    return key
 
 
 def ask_scale() -> Scale:

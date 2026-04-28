@@ -30,6 +30,30 @@ class Role(str, Enum):
     ANCHOR = "anchor"
 
 
+class LLMProvider(str, Enum):
+    """Proveedores de LLM soportados."""
+
+    ANTHROPIC = "anthropic"
+    GEMINI = "gemini"
+    OPENAI = "openai"
+    OPENROUTER = "openrouter"
+
+
+PROVIDER_ENV_KEYS: dict[str, str] = {
+    "anthropic": "ANTHROPIC_API_KEY",
+    "gemini": "GEMINI_API_KEY",
+    "openai": "OPENAI_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+}
+
+PROVIDER_DEFAULT_MODELS: dict[str, str] = {
+    "anthropic": "claude-haiku-4-5",
+    "gemini": "gemini-2.0-flash",
+    "openai": "gpt-4o-mini",
+    "openrouter": "anthropic/claude-haiku-4-5",
+}
+
+
 class JudgeMode(str, Enum):
     """Modo del LLM juez."""
 

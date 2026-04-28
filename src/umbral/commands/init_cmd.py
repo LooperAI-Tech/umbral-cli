@@ -13,6 +13,9 @@ from umbral.core.config import (
     AgentType,
     JudgeConfig,
     JudgeMode,
+    LLMProvider,
+    PROVIDER_DEFAULT_MODELS,
+    PROVIDER_ENV_KEYS,
     ProjectConfig,
     Role,
     Scale,
@@ -33,8 +36,10 @@ from umbral.ui.console import (
 )
 from umbral.ui.prompts import (
     ask_agent,
+    ask_api_key,
     ask_domain,
     ask_judge_mode,
+    ask_llm_provider,
     ask_project_name,
     ask_role,
     ask_scale,
@@ -150,28 +155,46 @@ def _default_config(project_name: str) -> ProjectConfig:
 
 def _interactive_config(project_name: str) -> ProjectConfig | None:
     """Recoge configuración vía prompts interactivos."""
+    # 1. Proveedor de LLM
+    provider = ask_llm_provider()
+    if provider is None:
+        return None
+
+    # 2. API Key
+    api_key = ask_api_key(provider)
+    if api_key is None:
+        return None
+
+    has_key = bool(api_key.strip()) if api_key else False
+
+    if has_key:
+        env_var = PROVIDER_ENV_KEYS[provider.value]
+        os.environ[env_var] = api_key
+        print_info(f"{env_var} configurada ✓")
+    else:
+        print_warning("No se proporcionó API key.")
+
+    # 3. Dominio
     domain = ask_domain()
     if domain is None:
         return None
 
+    # 4. Escala
     scale = ask_scale()
     if scale is None:
         return None
 
+    # 5. Rol
     role = ask_role()
     if role is None:
         return None
 
+    # 6. Agente
     agent = ask_agent()
     if agent is None:
         return None
 
-    has_key = bool(os.environ.get("ANTHROPIC_API_KEY"))
-    if has_key:
-        print_info("ANTHROPIC_API_KEY detectada ✓")
-    else:
-        print_warning("ANTHROPIC_API_KEY no detectada.")
-
+    # 7. Modo del juez
     judge_mode = ask_judge_mode(has_key)
     if judge_mode is None:
         return None
@@ -182,7 +205,11 @@ def _interactive_config(project_name: str) -> ProjectConfig | None:
         scale=scale,
         role=role,
         agent=agent,
-        judge=JudgeConfig(mode=judge_mode),
+        judge=JudgeConfig(
+            mode=judge_mode,
+            provider=provider.value,
+            model=PROVIDER_DEFAULT_MODELS[provider.value],
+        ),
     )
 
 
@@ -197,4 +224,6 @@ def _print_summary(config: ProjectConfig) -> None:
     console.print(f"  Escala:    [cyan]{config.scale.value}[/cyan]")
     console.print(f"  Rol:       [cyan]{config.role.value}[/cyan]")
     console.print(f"  Agente:    [cyan]{config.agent.value}[/cyan]")
+    console.print(f"  Proveedor: [cyan]{config.judge.provider}[/cyan]")
+    console.print(f"  Modelo:    [cyan]{config.judge.model}[/cyan]")
     console.print(f"  Juez:      [cyan]{config.judge.mode.value}[/cyan]")

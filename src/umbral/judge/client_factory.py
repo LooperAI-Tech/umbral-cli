@@ -8,6 +8,7 @@ from __future__ import annotations
 from umbral.judge.base_client import BaseJudgeClient
 from umbral.judge.clients.anthropic_client import AnthropicJudgeClient
 from umbral.judge.clients.gemini_client import GeminiJudgeClient
+from umbral.judge.clients.openai_client import OpenAIJudgeClient
 from umbral.judge.clients.openrouter_client import OpenRouterJudgeClient
 
 
@@ -17,7 +18,7 @@ def create_judge_client(
     """Crea el cliente del juez según el proveedor configurado.
 
     Args:
-        provider: Nombre del proveedor (anthropic, gemini, openrouter).
+        provider: Nombre del proveedor (anthropic, gemini, openai, openrouter).
         model: ID del modelo en el proveedor (p. ej. claude-haiku-4-5, gemini-2.0-flash).
 
     Returns:
@@ -31,10 +32,12 @@ def create_judge_client(
         return AnthropicJudgeClient(model=m or "claude-haiku-4-5")
     elif provider == "gemini":
         return GeminiJudgeClient(model=m or "gemini-2.0-flash")
+    elif provider == "openai":
+        return OpenAIJudgeClient(model=m or "gpt-4o-mini")
     elif provider == "openrouter":
         return OpenRouterJudgeClient(model=m or "anthropic/claude-haiku-4-5")
     else:
         raise ValueError(
             f"Proveedor no soportado: {provider}. "
-            "Opciones: anthropic, gemini, openrouter."
+            "Opciones: anthropic, gemini, openai, openrouter."
         )
